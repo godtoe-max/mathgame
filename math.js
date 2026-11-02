@@ -1,0 +1,15 @@
+(function(root){
+ function parts(n){return String(n).split('').map((digit,i,digits)=>Number(digit)*10**(digits.length-i-1)).filter(Boolean);}
+ const operations = {
+ add:{name:'Addition',symbol:'+',generate:(n,r)=>{const a=r(n),b=r(n);return {a,b,answer:a+b}},teach:(a,b)=>b>=10?`Break ${b} into place-value parts: ${parts(b).join(' + ')}. Start with ${a}, then add each part in order. Keep a running total.`:`Start with ${a}. Count forward ${b} more, or combine the two groups and count them.`},
+ subtract:{name:'Subtraction',symbol:'−',generate:(n,r)=>{const a=r(n),b=r(a);return {a,b,answer:a-b}},teach:(a,b)=>b>=10?`Break ${b} into ${parts(b).join(' + ')}. Start with ${a} and take away each part in order. Check by adding your result back to ${b}.`:`Start with ${a}. Take away ${b}, or count backward. If you cross a ten, stop there and take away the rest.`},
+ multiply:{name:'Multiplication',symbol:'×',generate:(n,r)=>{const a=r(n),b=r(n);return {a,b,answer:a*b}},teach:(a,b)=>b>=10?`Split ${b} into ${parts(b).join(' + ')}. Multiply ${a} by each part separately, then add the smaller products.`:`Make ${a} equal groups with ${b} in each. Use a times-table fact, skip-count, or split the groups into ones you know. Zero groups means zero altogether.`},
+ divide:{name:'Division',symbol:'÷',generate:(n,r)=>{const b=1+r(n-1),answer=r(n);return {a:b*answer,b,answer}},teach:(a,b)=>{const chunk=Math.floor(a/(b*10))*b*10;return chunk>0&&chunk<a?`Split ${a} into ${chunk} and ${a-chunk}. Divide both parts by ${b}, then add the two shares. Check with multiplication.`:`Share ${a} things into ${b} equal groups. Ask: ${b} times what number makes ${a}? Check your share by multiplying it by ${b}.`;}}
+ };
+ const levels=[20,100,500,2000],factors=[5,10,12,25];
+ function generate(key,level=0,random=Math.random){const op=operations[key];if(!op)throw Error('Unknown skill');const cap=(key==='add'||key==='subtract'?levels:factors)[Math.min(3,Math.max(0,level))];const r=n=>Math.floor(random()*(n+1));let values=op.generate(cap,r);if(key==='divide'&&level>=2){const b=2+r(10),answer=1+r(level>=3?99:24);values={a:b*answer,b,answer};}return {key,...values,symbol:op.symbol,name:op.name};}
+ function record(state,key,independent){const s=state.skills[key];if(independent){s.streak=Math.min(3,s.streak+1);if(s.streak>=3&&s.level<3){s.level++;s.streak=0;}}else s.streak=0;state.stars++;return state;}
+ function fresh(){return {version:1,stars:0,skills:Object.fromEntries(Object.keys(operations).map(k=>[k,{level:0,streak:0}]))};}
+ function quest(key,level,stage,random=Math.random){const p=generate(key,level,random);if(stage<2||level<1)return p;const primaryAnswer=p.answer,value=key==='add'?Math.floor(random()*(Math.min(primaryAnswer,30)+1)):1+Math.floor(random()*Math.min(30,5+level*5));const secondary={symbol:key==='add'?'−':'+',value};p.primaryAnswer=primaryAnswer;p.secondary=secondary;p.answer=key==='add'?primaryAnswer-value:primaryAnswer+value;return p;}
+ const api={operations,generate,quest,record,fresh};if(typeof module!=='undefined')module.exports=api;else root.MathGarden=api;
+})(typeof window!=='undefined'?window:globalThis);
